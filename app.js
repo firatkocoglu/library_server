@@ -1,18 +1,22 @@
-require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 
 const app = express();
 const morgan = require('morgan');
-const { Pool } = require('pg');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
+const pool = require('./db.js');
+
+const usersRouter = require('./routes/userRoutes.js');
+
 const port = 3000;
 
+app.use(cors());
+app.use(bodyParser.json());
 app.use(morgan('dev'));
+app.use('/users', usersRouter);
 
 app.get('/', async (req, res) => {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
   const client = await pool.connect();
   const result = await client.query(
     'SELECT name, author, year, genre FROM books INNER JOIN genres ON books.genre_id = genres.id'
