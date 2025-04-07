@@ -3,18 +3,26 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 
 const pool = require('./db.js');
 
 const usersRouter = require('./routes/userRoutes.js');
+const authRouter = require('./routes/authRoutes.js');
 
 const port = 3000;
 
+app.use(express.json()); //this is the build in express body-parser
+app.use(
+  //this mean we don't need to use body-parser anymore
+  express.urlencoded({
+    extended: true,
+  })
+);
+
 app.use(cors());
-app.use(bodyParser.json());
 app.use(morgan('dev'));
 app.use('/users', usersRouter);
+app.use('/auth', authRouter);
 
 app.get('/', async (req, res) => {
   const client = await pool.connect();
