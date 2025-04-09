@@ -1,7 +1,7 @@
 const pool = require('../db.js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
+const redisClient = require('../middleware/redis.js').redisClient;
 
 const registerUser = async (req, res) => {
   const { email, password, name, surname } = req.body;
@@ -58,7 +58,7 @@ const loginUser = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn: '1d',
     });
 
     return res.json({
@@ -71,7 +71,41 @@ const loginUser = async (req, res) => {
   }
 };
 
+const logoutUser = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const isBlacklisted = await redisClient.get(token);
+    if (isBlacklisted) {
+      return res.status(401).json({ error: 'User already logged out.' });
+    }
+
+    const decoded = jwt.decode(token, process.env.JWT_SECRET);
+
+    const expiration = decoded.exp;
+    const ttl = expiration - Math.floor(Date.now() / 1000);
+
+    if (ttl > 0) {
+      await redisClient.set(token, 'blacklisted', { EX: ttl });
+    } else {
+      return res.status(401).json({ error: 'Token already expired' });
+    }
+    console.log(decoded, expiration, ttl);
+
+    return res.status(200).json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Error logging out user:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser,
 };

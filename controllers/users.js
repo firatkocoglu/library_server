@@ -3,9 +3,7 @@ const pool = require('../db.js');
 const getUsers = async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query(
-      'SELECT * FROM users WHERE is_admin = false'
-    );
+    const result = await client.query('SELECT * FROM users ORDER BY id ASC');
     client.release();
     const { rows } = result;
     if (rows) {

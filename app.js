@@ -1,4 +1,5 @@
 const express = require('express');
+const { connectRedis } = require('./middleware/redis.js');
 
 const app = express();
 const morgan = require('morgan');
@@ -11,9 +12,8 @@ const authRouter = require('./routes/authRoutes.js');
 
 const port = 3000;
 
-app.use(express.json()); //this is the build in express body-parser
+app.use(express.json());
 app.use(
-  //this mean we don't need to use body-parser anymore
   express.urlencoded({
     extended: true,
   })
@@ -42,4 +42,8 @@ app.listen(port, () => {
   console.log(
     `Connected to Neon Database. Server is running on port ${port}. Visit http://localhost:${port}.`
   );
+});
+
+connectRedis().catch((err) => {
+  console.log('Redis Client Error', err);
 });
