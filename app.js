@@ -10,6 +10,7 @@ const pool = require('./db.js');
 const usersRouter = require('./routes/userRoutes.js');
 const authRouter = require('./routes/authRoutes.js');
 const bookRouter = require('./routes/bookRoutes.js');
+const genreRouter = require('./routes/genreRoutes.js');
 
 const port = 3000;
 
@@ -25,6 +26,7 @@ app.use(morgan('dev'));
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
 app.use('/books', bookRouter);
+app.use('/genres', genreRouter);
 
 app.get('/', async (req, res) => {
   const client = await pool.connect();
