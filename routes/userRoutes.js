@@ -7,11 +7,11 @@ const {
 const { Router } = require('express');
 const { isAuthenticated, isAdmin } = require('../middleware/auth.js');
 
-const usersRouter = Router();
+const userRouter = Router();
 
-usersRouter.get('/', isAuthenticated, getUsers);
-usersRouter.get('/:id', isAuthenticated, getUserById);
-usersRouter.delete('/:id', isAdmin, deleteUser);
-usersRouter.patch('/:id', isAdmin, updateUser);
+userRouter.get('/', isAuthenticated, getUsers);
+userRouter.get('/:id', isAuthenticated, getUserById);
+userRouter.delete('/:id', isAdmin, deleteUser);
+userRouter.patch('/:id', isAdmin, updateUser);
 
-module.exports = usersRouter;
+module.exports = userRouter;

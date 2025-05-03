@@ -4,6 +4,7 @@ const { connectRedis } = require('./middleware/redis.js');
 const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
+const helmet = require('helmet');
 
 const pool = require('./db.js');
 
@@ -11,8 +12,10 @@ const usersRouter = require('./routes/userRoutes.js');
 const authRouter = require('./routes/authRoutes.js');
 const bookRouter = require('./routes/bookRoutes.js');
 const genreRouter = require('./routes/genreRoutes.js');
+const loanRouter = require('./routes/loanRoutes.js');
 
 const port = 3000;
+
 
 app.use(express.json());
 app.use(
@@ -21,12 +24,14 @@ app.use(
   })
 );
 
+app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
 app.use('/books', bookRouter);
 app.use('/genres', genreRouter);
+app.use('/loans', loanRouter);
 
 app.get('/', async (req, res) => {
   const client = await pool.connect();
