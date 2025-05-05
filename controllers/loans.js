@@ -50,8 +50,6 @@ const createLoan = async (req, res) => {
   }
   const { book_id, return_date } = req.body;
 
-  console.log(loan_date);
-
   try {
     const client = await pool.connect();
     const result = await client.query(

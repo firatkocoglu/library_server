@@ -3,7 +3,9 @@ const pool = require('../db.js');
 const getBooks = async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query('SELECT * FROM books ORDER BY id ASC');
+    const result = await client.query(
+      'SELECT books.id, title, author, year, genre, image_url FROM books INNER JOIN genres ON books.genre_id = genres.id  ORDER BY books.id ASC'
+    );
     client.release();
     const { rows } = result;
     if (rows.length > 0) {
@@ -22,7 +24,7 @@ const getBookByID = async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query(
-      'SELECT * FROM books INNER JOIN genres ON books.genres_id=genres.id WHERE id= $1',
+      'SELECT books.id, title, author, year, genre, image_url FROM books INNER JOIN genres ON books.genre_id = genres.id WHERE books.id= $1',
       [id]
     );
     client.release();
