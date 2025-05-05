@@ -39,15 +39,15 @@ const getBookByID = async (req, res) => {
 };
 
 const addBook = async (req, res) => {
-  const { name, author, genre_id, year, image_url } = req.body;
-  if (!name || !author || !genre_id || !year) {
+  const { title, author, genre_id, year, image_url } = req.body;
+  if (!title || !author || !genre_id || !year) {
     return res.status(400).json({ message: 'All fields are required' });
   }
   try {
     const client = await pool.connect();
     const result = await client.query(
-      `INSERT INTO books (name, author, year, genre_id, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [name, author, year, genre_id, image_url]
+      `INSERT INTO books (title, author, year, genre_id, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [title, author, year, genre_id, image_url]
     );
     client.release();
     const { rows } = result;
