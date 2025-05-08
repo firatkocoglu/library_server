@@ -53,12 +53,12 @@ const createLoan = async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query(
-      'INSERT INTO loans (user_id, book_id, loan_date, return_date) VALUES ($1,$2,$3,$4) RETURNING ',
+      'WITH inserted AS (INSERT INTO loans (user_id, book_id, loan_date, return_date) VALUES ($1,$2,$3,$4) RETURNING *) SELECT inserted.id, inserted.loan_date, inserted.return_date, users.name, users.surname, users.email, books.title from inserted INNER JOIN users ON inserted.user_id = users.id INNER JOIN books ON inserted.book_id = books.id',
       [user_id, book_id, loan_date, return_date]
     );
     client.release();
     const { rows } = result;
-    if (rows.length > 0) {
+    if (rows.length > 0) { 
       res.status(201).json(rows[0]);
     } else {
       res.status(400).json({ message: 'Loan creation failed' });
@@ -69,8 +69,32 @@ const createLoan = async (req, res) => {
   }
 };
 
+const updateLoan = async (req, res) => {
+  const { id } = req.params;
+
+  const fields = req.body;
+
+  const key = Object.keys(fields);
+  const values = Object.values(fields);
+
+  if (key.length === 0) {
+    return res.status(400).json({ message: 'No fields to update' });
+  }
+
+  const setClause = key
+    .map((key, index) => `${key} = $${index + 1}`)
+    .join(', ');
+
+  const query = `UPDATE loans SET ${setClause} WHERE id = $${
+    values.length + 1
+  }`;
+
+  return 'Fro';
+};
+
 module.exports = {
   getLoans,
   getLoanByID,
   createLoan,
+  updateLoan,
 };
