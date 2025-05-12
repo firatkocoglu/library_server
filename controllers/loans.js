@@ -58,7 +58,7 @@ const createLoan = async (req, res) => {
     );
     client.release();
     const { rows } = result;
-    if (rows.length > 0) { 
+    if (rows.length > 0) {
       res.status(201).json(rows[0]);
     } else {
       res.status(400).json({ message: 'Loan creation failed' });
@@ -85,11 +85,25 @@ const updateLoan = async (req, res) => {
     .map((key, index) => `${key} = $${index + 1}`)
     .join(', ');
 
-  const query = `UPDATE loans SET ${setClause} WHERE id = $${
+  const query = `WITH updated AS (UPDATE loans SET ${setClause} WHERE id = $${
     values.length + 1
-  }`;
+  } RETURNING *) SELECT updated.id, updated.loan_date, updated.return_date, users.name, users.surname, users.email, books.title from updated INNER JOIN users ON updated.user_id = users.id INNER JOIN books ON updated.book_id = books.id`;
 
-  return 'Fro';
+  values.push(id);
+  try {
+    const client = await pool.connect();
+    const result = await client.query(query, values);
+    client.release();
+    const { rows } = result;
+    if (rows.length > 0) {
+      res.status(200).json(rows[0]);
+    } else {
+      res.status(404).json({ message: 'Loan not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 module.exports = {
