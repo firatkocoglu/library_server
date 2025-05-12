@@ -41,36 +41,41 @@ const getBookByID = async (req, res) => {
 };
 
 const addBook = async (req, res) => {
-  // const { title, author, genre_id, year, image_url } = req.body;
   const { books } = req.body;
-
-  // console.log(books);
+  if (!books) {
+    return res.status(400).json({ message: 'Books are required' });
+  }
 
   if (!Array.isArray(books)) {
     return res.status(400).json({ message: 'Books should be an array' });
   }
-  // if (!title || !author || !genre_id || !year) {
-  //   return res.status(400).json({ message: 'All fields are required' });
-  // }
+
   try {
-    const values = books.map((book) => {
-      [book.title, book.author, book.year, book.genre_id, book.image_url];
-    });
+    const query = `INSERT INTO books (title, author, year, genre_id, image_url) VALUES ${books
+      .map(
+        (_, index) =>
+          `($${index * 5 + 1}, $${index * 5 + 2}, $${index * 5 + 3}, $${
+            index * 5 + 4
+          }, $${index * 5 + 5})`
+      )
+      .join(', ')} RETURNING *;`;
 
-    // const query = `WITH inserted AS (INSERT INTO books (title, author, year, genre_id, image_url) VALUES ${values.map(())})`
-
-    //   const client = await pool.connect();
-    //   const result = await client.query(
-    //     `WITH inserted AS(INSERT INTO books (title, author, year, genre_id, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *) SELECT inserted.id, inserted.title, inserted.author, inserted.image_url, genres.genre from inserted INNER JOIN genres ON inserted.genre_id = genres.id`,
-    //     [title, author, year, genre_id, image_url]
-    //   );
-    //   client.release();
-    //   const { rows } = result;
-    //   if (rows.length > 0) {
-    //     res.status(201).json(rows[0]);
-    //   } else {
-    //     res.status(400).json({ message: 'Error adding book' });
-    //   }
+      
+    const values = books.flatMap((book) => [
+      book.title,
+      book.author,
+      book.year,
+      book.genre_id,
+      book.image_url,
+    ]);
+    const client = await pool.connect();
+    const result = await client.query(query, values);
+    const { rows } = result;
+    if (rows.length === 0) {
+      return res.status(400).json({ message: 'Error adding book' });
+    } else {
+      return res.status(201).json(rows);
+    }
   } catch (error) {
     console.error(error);
     return res
