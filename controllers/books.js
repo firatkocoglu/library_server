@@ -42,45 +42,66 @@ const getBookByID = async (req, res) => {
 
 const addBook = async (req, res) => {
   const { books } = req.body;
-  if (!books) {
-    return res.status(400).json({ message: 'Books are required' });
-  }
-
-  if (!Array.isArray(books)) {
-    return res.status(400).json({ message: 'Books should be an array' });
-  }
-
-  try {
-    const query = `INSERT INTO books (title, author, year, genre_id, image_url) VALUES ${books
-      .map(
-        (_, index) =>
-          `($${index * 5 + 1}, $${index * 5 + 2}, $${index * 5 + 3}, $${
-            index * 5 + 4
-          }, $${index * 5 + 5})`
-      )
-      .join(', ')} RETURNING *;`;
-
-      
-    const values = books.flatMap((book) => [
-      book.title,
-      book.author,
-      book.year,
-      book.genre_id,
-      book.image_url,
-    ]);
-    const client = await pool.connect();
-    const result = await client.query(query, values);
-    const { rows } = result;
-    if (rows.length === 0) {
-      return res.status(400).json({ message: 'Error adding book' });
-    } else {
-      return res.status(201).json(rows);
+  if (books) {
+    if (!Array.isArray(books)) {
+      return res.status(400).json({ message: 'Books should be an array' });
     }
-  } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ message: 'Internal Server Error adding book' });
+
+    try {
+      const query = `WITH inserted AS (INSERT INTO books (title, author, year, genre_id, image_url) VALUES ${books
+        .map(
+          (_, index) =>
+            `($${index * 5 + 1}, $${index * 5 + 2}, $${index * 5 + 3}, $${
+              index * 5 + 4
+            }, $${index * 5 + 5})`
+        )
+        .join(
+          ', '
+        )} RETURNING *) SELECT inserted.id, inserted.title, inserted.author, inserted.year, inserted.image_url, genres.genre from inserted INNER JOIN genres ON inserted.genre_id = genres.id`;
+
+      const values = books.flatMap((book) => [
+        book.title,
+        book.author,
+        book.year,
+        book.genre_id,
+        book.image_url,
+      ]);
+      const client = await pool.connect();
+      const result = await client.query(query, values);
+      const { rows } = result;
+      if (rows.length === 0) {
+        return res.status(400).json({ message: 'Error adding book' });
+      } else {
+        return res.status(201).json(rows);
+      }
+    } catch (error) {
+      console.error(error);
+      return res
+        .status(500)
+        .json({ message: 'Internal Server Error adding book' });
+    }
+  } else {
+    const { title, author, year, genre_id, image_url } = req.body;
+    if (!title || !author || !year || !genre_id) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    try {
+      const client = await pool.connect();
+      const result = await client.query(
+        'WITH inserted AS (INSERT INTO books (title, author, year, genre_id, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *) SELECT inserted.id, inserted.title, inserted.author, inserted.year, inserted.image_url, genres.genre from inserted INNER JOIN genres ON inserted.genre_id = genres.id',
+        [title, author, year, genre_id, image_url]
+      );
+      client.release();
+      const { rows } = result;
+      if (rows.length > 0) {
+        res.status(201).json(rows[0]);
+      } else {
+        res.status(400).json({ message: 'Error adding book' });
+      }
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
   }
 };
 
