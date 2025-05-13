@@ -1,11 +1,19 @@
 const pool = require('../db.js');
 
 const getLoans = async (req, res) => {
+  const { id, isAdmin } = req.user;
+
   try {
+    let query =
+      'SELECT loans.id, users.name, users.surname, users.email, loans.loan_date, loans.return_date, books.title, books.author, books.year FROM loans INNER JOIN users ON loans.user_id = users.id INNER JOIN books ON loans.book_id = books.id';
+    const values = [];
+    if (!isAdmin) {
+      values.push(id);
+      query += ' WHERE loans.user_id = $1';
+    }
     const client = await pool.connect();
-    const result = await client.query(
-      'SELECT loans.id, users.name, users.surname, users.email, loans.loan_date, loans.return_date, books.title, books.author, books.year FROM loans INNER JOIN users ON loans.user_id = users.id INNER JOIN books ON loans.book_id = books.id'
-    );
+    const result = await client.query(query, values);
+
     client.release();
     const { rows } = result;
     if (rows.length > 0) {
@@ -20,13 +28,20 @@ const getLoans = async (req, res) => {
 };
 
 const getLoanByID = async (req, res) => {
-  const { id } = req.params;
+  const { id: loanID } = req.params;
+  const { id: userID, isAdmin } = req.user;
+
+  let query =
+    'SELECT loans.id, users.name, users.surname, users.email, loans.loan_date, loans.return_date, books.title, books.author, books.year FROM loans INNER JOIN users ON loans.user_id = users.id INNER JOIN books ON loans.book_id = books.id WHERE loans.id = $1';
+
+  const values = [loanID];
+  if (!isAdmin) {
+    query += ' AND loans.user_id = $2';
+    values.push(userID);
+  }
   try {
     const client = await pool.connect();
-    const result = await client.query(
-      'SELECT loans.id, users.name, users.surname, users.email, loans.loan_date, loans.return_date, books.title, books.author, books.year FROM loans INNER JOIN users ON loans.user_id = users.id INNER JOIN books ON loans.book_id = books.id WHERE loans.id = $1',
-      [id]
-    );
+    const result = await client.query(query, values);
     client.release();
     const { rows } = result;
     if (rows.length > 0) {
@@ -70,7 +85,9 @@ const createLoan = async (req, res) => {
 };
 
 const updateLoan = async (req, res) => {
-  const { id } = req.params;
+  const { id: bookID } = req.params;
+
+  const { id: userID, isAdmin } = req.user;
 
   const fields = req.body;
 
@@ -85,18 +102,53 @@ const updateLoan = async (req, res) => {
     .map((key, index) => `${key} = $${index + 1}`)
     .join(', ');
 
-  const query = `WITH updated AS (UPDATE loans SET ${setClause} WHERE id = $${
+  let query = `WITH updated AS (UPDATE loans SET ${setClause} WHERE id = $${
     values.length + 1
-  } RETURNING *) SELECT updated.id, updated.loan_date, updated.return_date, users.name, users.surname, users.email, books.title from updated INNER JOIN users ON updated.user_id = users.id INNER JOIN books ON updated.book_id = books.id`;
+  }`;
 
-  values.push(id);
+  let querySecondPart =
+    ' RETURNING *) SELECT updated.id, updated.loan_date, updated.return_date, users.name, users.surname, users.email, books.title from updated INNER JOIN users ON updated.user_id = users.id INNER JOIN books ON updated.book_id = books.id';
+
+  values.push(bookID);
+  if (!isAdmin) {
+    query += ' AND user_id = $' + (values.length + 1);
+    values.push(userID);
+  }
+
+  try {
+    const client = await pool.connect();
+    const result = await client.query(query + querySecondPart, values);
+    client.release();
+    const { rows } = result;
+    if (rows.length > 0) {
+      res.status(200).json(rows[0]);
+    } else {
+      res.status(404).json({ message: 'Loan not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const deleteLoan = async (req, res) => {
+  const { id: bookID } = req.params;
+  const { id: userID, isAdmin } = req.user;
+
+  let query = 'DELETE FROM loans WHERE id = $1';
+  const values = [bookID];
+
+  if (!isAdmin) {
+    query += ' AND user_id = $2';
+    values.push(userID);
+  }
   try {
     const client = await pool.connect();
     const result = await client.query(query, values);
     client.release();
     const { rows } = result;
     if (rows.length > 0) {
-      res.status(200).json(rows[0]);
+      res.status(200).json({ message: 'Loan deleted successfully' });
     } else {
       res.status(404).json({ message: 'Loan not found' });
     }
@@ -111,4 +163,5 @@ module.exports = {
   getLoanByID,
   createLoan,
   updateLoan,
+  deleteLoan,
 };
