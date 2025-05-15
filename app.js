@@ -16,7 +16,6 @@ const loanRouter = require('./routes/loanRoutes.js');
 
 const port = 3000;
 
-
 app.use(express.json());
 app.use(
   express.urlencoded({
@@ -36,7 +35,7 @@ app.use('/loans', loanRouter);
 app.get('/', async (req, res) => {
   const client = await pool.connect();
   const result = await client.query(
-    'SELECT name, author, year, genre FROM books INNER JOIN genres ON books.genre_id = genres.id'
+    'SELECT title, author, year, genre FROM books INNER JOIN genres ON books.genre_id = genres.id'
   );
   client.release();
   const { rows } = result;
