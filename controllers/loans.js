@@ -56,6 +56,8 @@ const getLoanByID = async (req, res) => {
 };
 
 const createLoan = async (req, res) => {
+  const client = await pool.connect();
+
   const user_id = req.user.id;
   let loan_date = req.body.loan_date;
   const now = new Date();
@@ -66,21 +68,44 @@ const createLoan = async (req, res) => {
   const { book_id, return_date } = req.body;
 
   try {
-    const client = await pool.connect();
+    await client.query('BEGIN');
+
+    const isBookAvailable = await client.query(
+      'SELECT * FROM books WHERE id = $1 AND available > 0',
+      [book_id]
+    );
+
+    if (
+      isBookAvailable.rows.length === 0 ||
+      isBookAvailable.rows[0].available <= 0
+    ) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(400).json({ message: 'Book is not available' });
+    }
+
     const result = await client.query(
       'WITH inserted AS (INSERT INTO loans (user_id, book_id, loan_date, return_date) VALUES ($1,$2,$3,$4) RETURNING *) SELECT inserted.id, inserted.loan_date, inserted.return_date, users.name, users.surname, users.email, books.title from inserted INNER JOIN users ON inserted.user_id = users.id INNER JOIN books ON inserted.book_id = books.id',
       [user_id, book_id, loan_date, return_date]
     );
-    client.release();
+
     const { rows } = result;
     if (rows.length > 0) {
       res.status(201).json(rows[0]);
     } else {
       res.status(400).json({ message: 'Loan creation failed' });
     }
+
+    await client.query(
+      'UPDATE books SET available = available - 1 WHERE id = $1',
+      [book_id]
+    );
+    await client.query('COMMIT');
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 };
 
