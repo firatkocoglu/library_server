@@ -1,15 +1,26 @@
 const pool = require('../db.js');
 
 const getBooks = async (req, res) => {
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
+    const limit = req.query.limit || 10;
+    const page = req.query.page || 1;
+    const offset = (page - 1) * limit;
+
+    const countResult = await client.query('SELECT COUNT(*) FROM books');
+    const totalBooks = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalBooks / limit);
+
     const result = await client.query(
-      'SELECT books.id, title, author, year, genre, image_url, available FROM books INNER JOIN genres ON books.genre_id = genres.id  ORDER BY books.id ASC'
+      'SELECT books.id, title, author, year, genre, image_url, available FROM books INNER JOIN genres ON books.genre_id = genres.id ORDER BY books.id ASC LIMIT $1 OFFSET $2',
+      [limit, offset]
     );
     client.release();
     const { rows } = result;
     if (rows.length > 0) {
-      res.json(rows);
+      res
+        .status(200)
+        .json({ page, limit, totalBooks, totalPages, books: rows });
     } else {
       res.status(404).json({ message: 'No books found' });
     }

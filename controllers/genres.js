@@ -23,7 +23,7 @@ const getGenreByID = async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT * FROM genres WHERE id = $1', [
-      id,
+      id 
     ]);
     client.release();
     const { rows } = result;
