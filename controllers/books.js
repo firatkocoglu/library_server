@@ -3,7 +3,7 @@ const pool = require('../db.js');
 const getBooks = async (req, res) => {
   const client = await pool.connect();
   try {
-    const limit = req.query.limit || 10;
+    const limit = req.query.limit || 12;
     const page = req.query.page || 1;
     const offset = (page - 1) * limit;
 
