@@ -5,6 +5,7 @@ const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 
 const usersRouter = require('./routes/userRoutes.js');
 const authRouter = require('./routes/authRoutes.js');
@@ -25,6 +26,7 @@ app.use(
 );
 
 app.use(helmet());
+app.use(cookieParser());
 
 app.use(morgan('dev'));
 app.use('/users', usersRouter);

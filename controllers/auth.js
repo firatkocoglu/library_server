@@ -58,7 +58,10 @@ const loginUser = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, isAdmin: user.is_admin },
+      {
+        id: user.id,
+        isAdmin: user.is_admin,
+      },
       process.env.JWT_SECRET,
       {
         expiresIn: '1d',
@@ -71,7 +74,15 @@ const loginUser = async (req, res) => {
       sameSite: 'Lax',
       maxAge: 1000 * 60 * 60 * 24,
     });
-    res.status(200).json({ message: 'Login successful' });
+
+    res.status(200).json({
+      message: 'Login successful',
+      user: {
+        email: user.email,
+        name: user.name,
+        surname: user.surname,
+      },
+    });
   } catch (error) {
     console.error('Error logging in user:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
@@ -80,12 +91,11 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    const { token } = req.cookies;
+
+    if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
-
-    const token = authHeader.split(' ')[1];
 
     const isBlacklisted = await redisClient.get(token);
     if (isBlacklisted) {
@@ -102,7 +112,12 @@ const logoutUser = async (req, res) => {
     } else {
       return res.status(401).json({ error: 'Token already expired' });
     }
-    console.log(decoded, expiration, ttl);
+
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+    });
 
     return res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
