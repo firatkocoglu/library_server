@@ -98,6 +98,7 @@ const logoutUser = async (req, res) => {
     }
 
     const isBlacklisted = await redisClient.get(token);
+
     if (isBlacklisted) {
       return res.status(401).json({ error: 'User already logged out.' });
     }

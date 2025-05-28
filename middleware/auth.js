@@ -2,20 +2,15 @@ const jwt = require('jsonwebtoken');
 const redisClient = require('../middleware/redis.js').redisClient;
 
 const isAuthenticated = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const { token } = req.cookies;
 
-  if (!authHeader) {
+  if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
-
-  const token = authHeader.split(' ')[1]; //
 
   const isBlacklisted = await redisClient.get(token);
 
   if (isBlacklisted) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
@@ -33,18 +28,14 @@ const isAuthenticated = async (req, res, next) => {
 };
 
 const isAdmin = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const { token } = req.cookies;
 
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const token = authHeader.split(' ')[1]; //
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   const isBlacklisted = await redisClient.get(token);
+
   if (isBlacklisted) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
