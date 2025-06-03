@@ -3,21 +3,47 @@ const pool = require('../db.js');
 const getBooks = async (req, res) => {
   const client = await pool.connect();
   try {
-    const limit = req.query.limit || 12;
-    const page = req.query.page || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
 
-    const countResult = await client.query('SELECT COUNT(*) FROM books');
-    const totalBooks = parseInt(countResult.rows[0].count);
+    const filterGenre = req.query.genre || '';
+
+    let query =
+      'SELECT books.id, title, author, year, genre, image_url, available FROM books INNER JOIN genres ON books.genre_id = genres.id';
+
+    const endOfQuery = filterGenre
+      ? ` WHERE genre=$1 ORDER BY books.id ASC LIMIT $2 OFFSET $3`
+      : ` ORDER BY books.id ASC LIMIT $1 OFFSET $2`;
+
+    query = query.concat(endOfQuery);
+
+    const values = filterGenre
+      ? [
+          filterGenre.charAt(0).toUpperCase() + filterGenre.slice(1),
+          limit,
+          offset,
+        ]
+      : [limit, offset];
+
+    let countQuery = 'SELECT COUNT(*) AS total_books FROM books';
+    countQuery = filterGenre
+      ? countQuery.concat(
+          ' INNER JOIN genres ON books.genre_id=genres.id WHERE genre=$1'
+        )
+      : countQuery;
+    const countValues = filterGenre
+      ? [filterGenre.charAt(0).toUpperCase() + filterGenre.slice(1)]
+      : [];
+
+    const countResult = await client.query(countQuery, countValues);
+    const totalBooks = parseInt(countResult.rows[0].total_books);
     const totalPages = Math.ceil(totalBooks / limit);
 
-    const result = await client.query(
-      'SELECT books.id, title, author, year, genre, image_url, available FROM books INNER JOIN genres ON books.genre_id = genres.id ORDER BY books.id ASC LIMIT $1 OFFSET $2',
-      [limit, offset]
-    );
+    const result = await client.query(query, values);
     client.release();
     const { rows } = result;
-    if (rows.length > 0) {
+    if (rows) {
       res
         .status(200)
         .json({ page, limit, totalBooks, totalPages, books: rows });

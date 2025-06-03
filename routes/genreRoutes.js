@@ -10,8 +10,8 @@ const {
 
 const genreRouter = Router();
 
-genreRouter.get('/', isAuthenticated, isAdmin, getGenres);
-genreRouter.get('/:id', isAuthenticated, isAdmin, getGenreByID);
+genreRouter.get('/', isAuthenticated, getGenres);
+genreRouter.get('/:id', isAuthenticated, getGenreByID);
 genreRouter.post('/', isAuthenticated, isAdmin, createGenre);
 genreRouter.patch('/:id', isAuthenticated, isAdmin, updateGenre);
 genreRouter.delete('/:id', isAuthenticated, isAdmin, deleteGenre);
