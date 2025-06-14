@@ -3,9 +3,9 @@ const {
   getUserById,
   deleteUser,
   updateUser,
-} = require('../controllers/users.js');
+} = require('../controllers/users.ts');
 const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.js');
+const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
 
 const userRouter = Router();
 

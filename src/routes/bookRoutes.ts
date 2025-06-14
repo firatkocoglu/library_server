@@ -4,9 +4,9 @@ const {
   addBook,
   updateBook,
   deleteBook,
-} = require('../controllers/books.js');
+} = require('../controllers/books.ts');
 const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.js');
+const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
 
 const bookRouter = Router();
 

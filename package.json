@@ -1,10 +1,11 @@
 {
   "name": "library_server",
   "version": "1.0.0",
+  "type": "module",
   "description": "Library Management Application",
-  "main": "app.js",
+  "main": "src/app.ts",
   "scripts": {
-    "start": "node --watch app.js",
+    "start": "tsx --watch src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Fırat Koçoğlu",
@@ -21,5 +22,19 @@
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
     "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/helmet": "^0.0.48",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.0.1",
+    "@types/pg": "^8.15.4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   }
 }

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const redisClient = require('../middleware/redis.js').redisClient;
+const redisClient = require('./redis').redisClient;
 
 const isAuthenticated = async (req, res, next) => {
   const { token } = req.cookies;

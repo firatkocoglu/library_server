@@ -1,12 +1,12 @@
 const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.js');
+const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
 const {
   getLoans,
   getLoanByID,
   createLoan,
   updateLoan,
   deleteLoan,
-} = require('../controllers/loans.js');
+} = require('../controllers/loans.ts');
 
 const loanRouter = Router();
 

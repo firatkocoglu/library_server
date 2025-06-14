@@ -1,4 +1,4 @@
-const pool = require('../db.js');
+const pool = require('../db.ts');
 
 const getBooks = async (req, res) => {
   const client = await pool.connect();

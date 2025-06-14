@@ -1,12 +1,12 @@
 const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.js');
+const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
 const {
   getGenres,
   getGenreByID,
   createGenre,
   updateGenre,
   deleteGenre,
-} = require('../controllers/genres.js');
+} = require('../controllers/genres.ts');
 
 const genreRouter = Router();
 

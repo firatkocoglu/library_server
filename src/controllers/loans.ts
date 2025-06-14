@@ -1,4 +1,4 @@
-const pool = require('../db.js');
+const pool = require('../db.ts');
 
 const getLoans = async (req, res) => {
   const { id, isAdmin } = req.user;
