@@ -1,19 +1,12 @@
-const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
-const {
-  getGenres,
-  getGenreByID,
-  createGenre,
-  updateGenre,
-  deleteGenre,
-} = require('../controllers/genres.ts');
+import {Router} from 'express';
+import {genreController} from "../container";
+import {isAuthenticated, isAdmin} from '../middleware/auth';
 
 const genreRouter = Router();
 
-genreRouter.get('/', isAuthenticated, getGenres);
-genreRouter.get('/:id', isAuthenticated, getGenreByID);
-genreRouter.post('/', isAuthenticated, isAdmin, createGenre);
-genreRouter.patch('/:id', isAuthenticated, isAdmin, updateGenre);
-genreRouter.delete('/:id', isAuthenticated, isAdmin, deleteGenre);
+genreRouter.get('/', isAuthenticated, genreController.list);
+genreRouter.get('/:id', isAuthenticated, genreController.retrieve);
 
-module.exports = genreRouter;
+export {
+    genreRouter
+}

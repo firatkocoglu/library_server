@@ -1,19 +1,20 @@
+import {Pool, PoolClient} from "pg";
 import {Request} from "express";
-import {UserRow} from "../types/dbTypes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import {Pool, PoolClient} from "pg";
-import {UserRepository} from "../repositories/UserRepository";
-import dotenv from "dotenv";
+import {UserRow} from "../types/dbTypes";
+import {AuthRepository} from "../repositories/authRepository";
 import {redisClient} from "../middleware/redis";
+
+import dotenv from "dotenv";
 
 dotenv.config();
 
 export class AuthService {
-    private userRepo: UserRepository;
+    private userRepo: AuthRepository;
 
     constructor(private pool: Pool) {
-        this.userRepo = new UserRepository(pool);
+        this.userRepo = new AuthRepository(pool);
     }
 
     public async registerUser(input: {
@@ -22,11 +23,11 @@ export class AuthService {
         name: string,
         surname: string,
     }): Promise<{ error?: string; status: number; user?: Omit<UserRow, "password"> }> {
-        const client = await this.pool.connect();
+        const client: PoolClient = await this.pool.connect();
 
         try {
-            // Check whether user already exists
-            const exists = await this.userRepo.doesUserExist(input.email);
+            // Check whether a user already exists
+            const exists: boolean = await this.userRepo.doesUserExist(input.email, client);
 
             // If user exists return an error
             if (exists) {
@@ -57,18 +58,21 @@ export class AuthService {
         user?: Omit<UserRow, 'password'>,
         token?: string
     }> {
-        const client = await this.pool.connect();
+        const client: PoolClient = await this.pool.connect();
 
         try {
             // Login user
-            const user = await this.userRepo.loginUser({ email: input.email, password: input.password }, client);
-            // If user can't login with given credentials
+            const user: UserRow | null = await this.userRepo.loginUser({
+                email: input.email,
+                password: input.password
+            }, client);
+            // If a user can't log in with given credentials
 
             if (!user) {
                 return { error: "Invalid email or password", status: 401 };
             }
 
-            // Check if password is correct
+            // Check if the password is correct
             const isMatch: boolean = await bcrypt.compare(input.password, user.password);
 
             if (!isMatch) {
@@ -85,6 +89,7 @@ export class AuthService {
             const token: string = jwt.sign(
                 {
                     id: user.id,
+                    email: user.email,
                     isAdmin: user.is_admin,
                     name: user.name,
                     surname: user.surname
@@ -114,7 +119,7 @@ export class AuthService {
                 return { error: "No token provided", status: 401 };
             }
 
-            // Check if token is already blacklisted
+            // Check if the token is already blacklisted
             const isBlacklisted = await redisClient.get(token);
 
             if (isBlacklisted) {
@@ -133,7 +138,7 @@ export class AuthService {
             if (!expiration || typeof expiration !== "number") {
                 return { error: 'Invalid or expired token', status: 401 }
             }
-            
+
             const ttl = expiration - Math.floor(Date.now() / 1000);
 
             if (ttl > 0) {

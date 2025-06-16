@@ -1,64 +1,71 @@
-const jwt = require('jsonwebtoken');
-const redisClient = require('./redis').redisClient;
+import jwt, {VerifyErrors} from "jsonwebtoken";
+import {NextFunction, Request, Response} from "express";
+import {redisClient} from "./redis";
+import {JwtUserPayload} from "../types/jwtTypes";
 
-const isAuthenticated = async (req, res, next) => {
-  const { token } = req.cookies;
+import dotenv from "dotenv";
 
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+dotenv.config();
 
-  const isBlacklisted = await redisClient.get(token);
+const verifyToken = (token: string, secret: string): Promise<JwtUserPayload> => {
+    return new Promise((resolve, reject) => {
+        jwt.verify(token, secret, (err, decoded) => {
+            if (err || !decoded) return reject(err);
+            resolve(decoded as JwtUserPayload);
+        })
+    })
+}
 
-  if (isBlacklisted) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, function (err, dcd) {
-    if (err) {
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token expired' });
-      }
-      return res.status(403).json({ message: 'Invalid token' });
-    } else {
-      req.user = dcd;
-      next();
+const getValidTokenData = async (req: Request, res: Response): Promise<{ token: string, secret: string } | void> => {
+    const { token } = req.cookies;
+    if (!token) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
     }
-  });
-};
 
-const isAdmin = async (req, res, next) => {
-  const { token } = req.cookies;
-
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const isBlacklisted = await redisClient.get(token);
-
-  if (isBlacklisted) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, function (err, dcd) {
-    if (err) {
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token expired' });
-      }
-      return res.status(403).json({ message: 'Invalid token' });
-    } else {
-      if (dcd.isAdmin === false) {
-        return res
-          .status(403)
-          .json({ message: 'You are not authorized to this operation.' });
-      }
-      req.user = dcd;
-      next();
+    const isBlacklisted: string | null = await redisClient.get(token);
+    if (isBlacklisted) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
     }
-  });
+
+    const secret: string | undefined = process.env.JWT_SECRET;
+    if (!secret) {
+        res.status(500).json({ message: 'Internal server error' });
+        return;
+    }
+
+    return { token, secret }
+}
+
+const isAuthenticated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const result = await getValidTokenData(req, res)
+    if (!result) return;
+
+    const { token, secret } = result;
+
+    try {
+        req.user = await verifyToken(token, secret) as JwtUserPayload
+        return next()
+    } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
+            res.status(401).json({ message: 'Token expired' });
+        } else {
+            res.status(403).json({ message: 'Invalid token' });
+        }
+        return;
+    }
 };
 
-module.exports = {
-  isAuthenticated,
-  isAdmin,
+const isAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const user = req.user as JwtUserPayload | undefined;
+
+    if (!user || !user.isAdmin) {
+        res.status(403).json({ message: 'You are not authorized to this operation.' });
+        return;
+    }
+    return next();
 };
+
+
+export {isAuthenticated, isAdmin};

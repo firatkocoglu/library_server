@@ -1,42 +1,40 @@
 import pool from '../db';
+import {GenreService} from "../services/genreServices";
+import {RequestHandler, Request, Response, NextFunction} from "express";
 
-const getGenres = async (req, res) => {
-    try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT * FROM genres ORDER BY id ASC');
-        client.release();
-        const { rows } = result;
-        if (rows.length > 0) {
-            res.json({ genres: rows });
-        } else {
-            res.status(404).json({ message: 'No genres found' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error retrieving genres' });
+export class GenreController {
+    constructor(private genreService: GenreService) {
     }
-};
 
-const getGenreByID = async (req, res) => {
-    const { id } = req.params;
+    public list: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        // Fetch all genres
+        const fetchGenres = await this.genreService.getGenres();
 
-    try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT * FROM genres WHERE id = $1', [
-            id,
-        ]);
-        client.release();
-        const { rows } = result;
-        if (rows.length > 0) {
-            res.json(rows[0]);
-        } else {
-            res.status(404).json({ message: 'Genre not found' });
+        const { error, status, genres } = fetchGenres;
+        // Check if there is an error
+        if (error) {
+            res.status(status).json({ message: error });
+            return;
         }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error retrieving genre' });
+
+        res.status(status).json({ genres });
     }
-};
+
+    public retrieve: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        const { id } = req.params;
+
+        const fetchGenre = await this.genreService.getGenreByID(id);
+
+        const { error, status, genre } = fetchGenre;
+
+        if (error) {
+            res.status(status).json({ message: error });
+            return;
+        }
+
+        res.status(status).json({ genre });
+    }
+}
 
 const createGenre = async (req, res) => {
     const { genre } = req.body;
@@ -98,10 +96,4 @@ const deleteGenre = async (req, res) => {
     }
 };
 
-module.exports = {
-    getGenres,
-    getGenreByID,
-    createGenre,
-    updateGenre,
-    deleteGenre,
-};
+export {getGenres};

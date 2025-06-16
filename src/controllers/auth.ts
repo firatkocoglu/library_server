@@ -1,8 +1,4 @@
-import pool from "../db";
-
-import {redisClient} from "../middleware/redis";
 import {Request, Response, RequestHandler, NextFunction} from "express";
-import {UserRow} from "../types/dbTypes";
 import {RegisterBody, LoginBody} from "../types/authTypes";
 import {AuthService} from "../services/authServices";
 
@@ -48,8 +44,8 @@ export class AuthController {
             res.status(status).json({ error });
             return;
         }
-        console.log(user)
 
+        // Set cookie
         res.cookie("token", token, {
             httpOnly: true,
             secure: false,
