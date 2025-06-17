@@ -6,6 +6,9 @@ const genreRouter = Router();
 
 genreRouter.get('/', isAuthenticated, genreController.list);
 genreRouter.get('/:id', isAuthenticated, genreController.retrieve);
+genreRouter.post('/', isAuthenticated, isAdmin, genreController.create);
+genreRouter.patch('/:id', isAuthenticated, isAdmin, genreController.update);
+genreRouter.delete('/:id', isAuthenticated, isAdmin, genreController.delete);
 
 export {
     genreRouter

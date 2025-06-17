@@ -1,4 +1,4 @@
-import jwt, {VerifyErrors} from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import {NextFunction, Request, Response} from "express";
 import {redisClient} from "./redis";
 import {JwtUserPayload} from "../types/jwtTypes";
