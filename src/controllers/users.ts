@@ -1,105 +1,108 @@
-const pool = require('../db.ts');
+import {UserService} from "../services/userServices";
+import {RequestHandler, Request, Response} from "express";
 
-const getUsers = async (req, res) => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query(
-      'SELECT email, name, surname FROM users ORDER BY id ASC'
-    );
-    client.release();
-    const { rows } = result;
-    if (rows) {
-      res.json(rows);
-    } else {
-      res.send('No users found');
+
+export class UserController {
+    constructor(private userService: UserService) {
     }
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
 
-const getUserById = async (req, res) => {
-  const { id } = req.params;
+    public list: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+        // Fetch all users
+        const users = await this.userService.getUsers();
+        const { error, status, users: fetchedUsers } = users;
 
-  try {
-    const client = await pool.connect();
-    const result = await client.query(
-      'SELECT email, name, surname FROM users WHERE id = $1',
-      [id]
-    );
-    const { rows } = result;
-    if (rows) {
-      res.json(rows);
-    } else {
-      res.send('No user found');
+        if (error) {
+            res.status(status).json({ error });
+            return;
+        }
+
+        res.status(status).json({ users: fetchedUsers });
+        return;
     }
-    client.release();
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
 
-const deleteUser = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const client = await pool.connect();
-    const result = await client.query(
-      'DELETE FROM users WHERE id = $1 RETURNING *',
-      [id]
-    );
-    const { rows } = result;
-    if (rows.length > 0) {
-      res.json({ message: 'User deleted successfully', user: rows[0] });
-    } else {
-      res.status(404).send('User not found');
+    public retrieve: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+
+        const idNum: number = parseInt(id);
+        if (isNaN(idNum)) {
+            res.status(400).json({ error: 'Invalid user id' });
+            return;
+        }
+
+        const user = await this.userService.getUserById(idNum)
+
+        const { error, status, user: fetchedUser } = user;
+
+        if (error) {
+            res.status(status).json({ error });
+            return;
+        }
+
+        res.status(status).json({ user: fetchedUser });
+        return;
     }
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
 
-const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const fields = req.body;
+    public delete: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
 
-  const keys = Object.keys(fields);
-  const values = Object.values(fields);
+        const idNum: number = parseInt(id);
+        if (isNaN(idNum)) {
+            res.status(400).json({ error: 'Invalid user id' });
+            return;
+        }
 
-  console.log(keys, values);
+        // Delete user
+        const deleteUser = await this.userService.deleteUser(idNum);
 
-  if (keys.length == 0) {
-    return res.status(400).send('No fields to update');
-  }
+        const { error, status, message } = deleteUser
 
-  const setClause = keys
-    .map((key, index) => `${key} = $${index + 1}`)
-    .join(', ');
+        if (error) {
+            res.status(status).json({ error });
+            return;
+        }
 
-  values.push(id);
-
-  const query = `UPDATE users SET ${setClause} WHERE id = $${values.length} RETURNING email, name, surname`;
-
-  try {
-    const client = await pool.connect();
-    const result = await client.query(query, values);
-    const { rows } = result;
-    if (rows.length > 0) {
-      res.json({ message: 'User updated successfully', user: rows[0] });
-    } else {
-      res.status(404).send('User not found');
+        res.status(status).json({ message });
+        return;
     }
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
 
-module.exports = {
-  getUsers,
-  getUserById,
-  deleteUser,
-  updateUser,
-};
+    public update: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const fields = req.body;
+
+        const idNum: number = parseInt(id);
+        if (isNaN(idNum)) {
+            res.status(400).json({ error: 'Invalid user id' });
+            return;
+        }
+
+        const updateFields: Array<string> = Object.keys(fields);
+        const updateValues: Array<string> = Object.values(fields);
+
+        if (updateFields.length == 0 || updateValues.length == 0) {
+            res.status(400).json({ error: 'No fields to update' });
+            return;
+        }
+
+        const emptyFields = updateValues.find(value => value === '')
+
+        if (emptyFields !== undefined) {
+            res.status(400).json({ error: 'Empty fields are not allowed' });
+            return;
+        }
+
+        const updatedUser = await this.userService.updateUser({ id: idNum, updateFields, updateValues });
+
+        const { error, status, user } = updatedUser
+
+        if (error) {
+            res.status(status).json({ error });
+            return;
+        }
+
+        res.status(status).json({ user });
+        return;
+    }
+}
+
+
+

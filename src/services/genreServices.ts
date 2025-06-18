@@ -98,7 +98,7 @@ export class GenreService {
             }
 
             // Update genre
-            const updatedGenre: GenreRow | null = await this.genreRepo.updateGenre(id, genre, client)
+            const updatedGenre: GenreRow | null = await this.genreRepo.updateGenre({ id, genre }, client)
             if (!updatedGenre) return { error: "Genre cannot be updated", status: 400 }
 
             return { genre: updatedGenre, status: 200 }

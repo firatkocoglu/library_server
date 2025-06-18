@@ -1,17 +1,12 @@
-const {
-  getUsers,
-  getUserById,
-  deleteUser,
-  updateUser,
-} = require('../controllers/users.ts');
-const { Router } = require('express');
-const { isAuthenticated, isAdmin } = require('../middleware/auth.ts');
+import {Router} from 'express';
+import {userController} from '../container'
+import {isAuthenticated, isAdmin} from '../middleware/auth'
 
 const userRouter = Router();
 
-userRouter.get('/', isAuthenticated, getUsers);
-userRouter.get('/:id', isAuthenticated, getUserById);
-userRouter.delete('/:id', isAdmin, deleteUser);
-userRouter.patch('/:id', isAdmin, updateUser);
+userRouter.get('/', isAuthenticated, isAdmin, userController.list)
+userRouter.get('/:id', isAuthenticated, isAdmin, userController.retrieve)
+userRouter.delete('/:id', isAuthenticated, isAdmin, userController.delete)
+userRouter.patch('/:id', isAuthenticated, isAdmin, userController.update)
 
-module.exports = userRouter;
+export {userRouter};

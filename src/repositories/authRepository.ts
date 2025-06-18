@@ -6,7 +6,7 @@ export class AuthRepository {
     constructor(private pool: Pool) {
     }
 
-    public async doesUserExist(email: string, client?: PoolClient): Promise<boolean> {
+    public async doesUserExistByEmail(email: string, client?: PoolClient): Promise<boolean> {
         const connection: PoolClient = client ?? await this.pool.connect();
         try {
             const res: QueryResult<{ exists: boolean }> = await connection.query<{ exists: boolean }>(

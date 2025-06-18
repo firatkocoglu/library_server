@@ -59,14 +59,14 @@ export class GenreRepository {
         }
     }
 
-    public async updateGenre(id: number, genre: string, client?: PoolClient): Promise<GenreRow | null> {
+    public async updateGenre(input: { id: number, genre: string }, client?: PoolClient): Promise<GenreRow | null> {
         const connection: PoolClient = client ?? await this.pool.connect()
 
         try {
             const res: QueryResult = await connection.query('UPDATE genres SET genre = $1 WHERE id = $2 RETURNING id, genre',
-                [genre, id])
+                [input.genre, input.id])
 
-            if (res.rows.length === 0) return null;
+            if (res.rowCount === 0) return null;
             return res.rows[0];
         } finally {
             if (!client) connection.release();
@@ -75,7 +75,7 @@ export class GenreRepository {
 
     public async deleteGenre(id: number, client?: PoolClient): Promise<{ message: string } | null> {
         const connection: PoolClient = client ?? await this.pool.connect()
-        
+
         try {
             // Delete genre
             const res: QueryResult = await connection.query('DELETE FROM genres WHERE id = $1', [id]);

@@ -11,10 +11,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export class AuthService {
-    private userRepo: AuthRepository;
+    private authRepo: AuthRepository;
 
     constructor(private pool: Pool) {
-        this.userRepo = new AuthRepository(pool);
+        this.authRepo = new AuthRepository(pool);
     }
 
     public async registerUser(input: {
@@ -27,7 +27,7 @@ export class AuthService {
 
         try {
             // Check whether a user already exists
-            const exists: boolean = await this.userRepo.doesUserExist(input.email, client);
+            const exists: boolean = await this.authRepo.doesUserExistByEmail(input.email, client);
 
             // If user exists return an error
             if (exists) {
@@ -39,7 +39,7 @@ export class AuthService {
             console.log(hashedPassword, typeof hashedPassword)
 
             // Create user
-            const newUser = await this.userRepo.createUser(
+            const newUser = await this.authRepo.createUser(
                 { email: input.email, password: hashedPassword, name: input.name, surname: input.surname }, client
             );
 
@@ -62,7 +62,7 @@ export class AuthService {
 
         try {
             // Login user
-            const user: UserRow | null = await this.userRepo.loginUser({
+            const user: UserRow | null = await this.authRepo.loginUser({
                 email: input.email,
                 password: input.password
             }, client);
